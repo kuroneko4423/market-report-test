@@ -19,6 +19,8 @@ jobs:
     #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
 
     runs-on: ubuntu-latest
+    outputs:
+      pr_number: ${{ github.event.pull_request.number }}
     permissions:
       contents: read
       pull-requests: read
@@ -42,3 +44,20 @@ jobs:
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
 
+  merge-pr:
+    needs: claude-review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Merge Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.APPROVE_GITHUB_TOKEN }}
+        run: |
+          # PRを直接mainブランチにマージ（承認なし）
+          gh pr merge ${{ needs.claude-review.outputs.pr_number }} --merge --auto
+          echo "Pull request #${{ needs.claude-review.outputs.pr_number }} merged into main"
